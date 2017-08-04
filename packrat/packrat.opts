@@ -6,8 +6,19 @@ vcs.ignore.src: FALSE
 external.packages:
     dplyr
     tibble
+    knitr
+    BH
+    R6
+    assertthat
+    bindr
+    bindrcpp
+    glue
+    pkgconfig
+    plogr
+    rlang
+    rmarkdown
 local.repos: 
-load.external.packages.on.startup: TRUE
+load.external.packages.on.startup: FALSE
 ignored.packages: 
 quiet.package.installation: TRUE
 snapshot.recommended.packages: FALSE
