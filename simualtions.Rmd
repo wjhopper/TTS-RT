@@ -2,19 +2,100 @@
 title: "Time-to-sample Reaction Time Model"
 author: "Will Hopper"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document:
+    self_contained: true
+params:
+  nSim: 1000
+  duration: 30
+  rate: 1
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
-library(tibble)
+library(pander)
+```
+
+```{r seed}
+set.seed(101)
 ```
 
 ```{r data, cache=TRUE}
-mem_strengths <- data_frame(strength = c(0.4, 0.6, 0.6, 1.2, 1.2, 2.0,
+mem_strengths <- data.frame(item = c(1:6, 1:9),
+                            strength = c(0.4, 0.6, 0.6, 1.2, 1.2, 2.0,
                                          0.4, 0.5, 0.7,0.9,0.9, 1.0, 1.0,1.8, 1.8),
                             threshold = c(rep(0, 6), rep(.8, 9)),
                             set = c(rep(1, 6), rep(2, 9))
                             )
+```
+
+```{r no_threshold_init, echo=TRUE}
+no_thresh_mem_strengths <- as.matrix(mem_strengths[mem_strengths[,"threshold"] == 0,])
+sim_RT  <- matrix(NA,
+                  nrow = params$nSim,
+                  ncol = nrow(no_thresh_mem_strengths)
+                  )
+pander(no_thresh_mem_strengths[, -4],
+       caption = "Hypothetical Items in Memory")
+```
+
+```{r no_threshold_simulations}
+probabilities <- no_thresh_mem_strengths[,"strength"] / sum(no_thresh_mem_strengths[,"strength"])
+# number of samples equals the duration of recall period divided by how long each sample takes (i.e., sampling rate)
+sample_size <- params$duration / params$rate
+
+for (sim in 1:nrow(sim_RT)) {
+  
+  # The s vector tells you which item was sampled at each point in time
+  s <- sample(x = no_thresh_mem_strengths[,"item"],
+              size = sample_size,
+              replace = TRUE,
+              prob = probabilities)
+
+  # This picks out the points in time where a new item was recalled
+  RTs <- which(!duplicated(s))
+  # This picks out the actual items output at those points in time, in the order they were output
+  items <- s[RTs]
+  # This stores the RTs for those items in this simulation
+  sim_RT[sim, items] <- RTs
+  
+  # If needed, take RTs from sampling-time back to seconds
+  if (params$rate != 1) {
+    sim_RT <- sim_RT * params$rate
+  }
+
+}
+```
+
+```{r analysis, fig.align="center", echo=FALSE}
+meanRT_by_item <- colMeans(sim_RT, na.rm = TRUE)
+plot(no_thresh_mem_strengths[,"strength"], meanRT_by_item,
+     xlab = "Strength", ylab = "RT")
+
+mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
+avg_acc <- mean(mean_acc_by_item)
+acc <- data.frame(t(mean_acc_by_item), avg_acc)
+names(acc) <- c(paste("Item", as.character(1:length(mean_acc_by_item))), "Avg.")
+pander(acc)
+
+outputs_per_time_point <- numeric(params$duration)
+for (t in 1:params$duration) {
+  outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
+}
+
+proportion <- outputs_per_time_point/prod(dim(sim_RT))
+cum_proportion <- cumsum(proportion)
+
+par(mfrow=c(1,2))
+
+plot(seq_along(proportion), proportion,
+     xlab = "Recall period (s)", ylab = "Relative Frequency"
+     )
+
+plot(seq_along(cum_proportion), cum_proportion,
+     xlab = "Recall period (s)", ylab = "Proportion Recalled",
+     ylim = c(0, 1)
+     )
+
+par(mfrow=c(1,1))
 ```
