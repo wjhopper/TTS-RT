@@ -7,6 +7,7 @@ TTS.numeric <- function(stregnth_dist_properties = c(1, .5),
                         threshold = 0,
                         duration = 30,
                         constant_rate = TRUE) {
+  library(whoppeR)
   print("numeric")
 }
 

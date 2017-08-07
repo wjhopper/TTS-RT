@@ -4,6 +4,7 @@ print.banner.on.startup: auto
 vcs.ignore.lib: TRUE
 vcs.ignore.src: FALSE
 external.packages:
+    devtools
     dplyr
     tibble
     knitr
@@ -18,6 +19,24 @@ external.packages:
     rlang
     rmarkdown
     pander
+    ggplot2
+    effsize
+    tidyr
+    lazyeval
+    stringdist
+    shiny
+    httpuv
+    sourcetools
+    xtable
+    RColorBrewer
+    colorspace
+    dichromat
+    gtable
+    labeling
+    munsell
+    plyr
+    reshape2
+    scales
 local.repos: 
 load.external.packages.on.startup: FALSE
 ignored.packages: 
