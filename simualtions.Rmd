@@ -39,7 +39,7 @@ pander(no_thresh_mem_strengths,
 sim_RT <- TTS(no_thresh_mem_strengths, duration = params$duration)
 ```
 
-```{r no_thresh_analysis, fig.align="center", echo=FALSE}
+```{r no_thresh_analysis, fig.align="center", echo=FALSE, warning=FALSE}
 mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
 mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
 
@@ -63,7 +63,7 @@ for (t in 1:params$duration) {
   outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
 }
 
-proportion <- outputs_per_time_point/prod(dim(sim_RT))
+proportion <- outputs_per_time_point/(prod(dim(sim_RT))*mean_acc)
 cum_proportion <- cumsum(proportion)
 
 ## Fit exponential distribution to the simulated results
@@ -110,7 +110,7 @@ pander(fixed_thresh_mem_strengths,
 sim_RT <- TTS(fixed_thresh_mem_strengths, duration = params$duration)
 ```
 
-```{r fix_thresh_analysis, fig.align="center", echo=FALSE}
+```{r fix_thresh_analysis, fig.align="center", echo=FALSE, warning=FALSE}
 mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
 mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
 
@@ -134,7 +134,7 @@ for (t in 1:params$duration) {
   outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
 }
 
-proportion <- outputs_per_time_point/prod(dim(sim_RT))
+proportion <- outputs_per_time_point/(prod(dim(sim_RT))*mean_acc)
 cum_proportion <- cumsum(proportion)
 
 ## Fit exponential distribution to the simulated results
@@ -152,7 +152,7 @@ text(x = params$duration/2, y = max(proportion)*.8,
      labels = substitute(lambda == y, list(y=round(coef(est), 3)))
      )
 
-plot(seq_along(cum_proportion), cum_proportion,
+plot(seq_along(cum_proportion), cum_proportion*mean_acc,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )
