@@ -83,8 +83,13 @@ TTS.matrix <- function(.data,
                 replace = TRUE,
                 prob = probabilities)
     
+    item_index <- match(s, .data[,"item"])
+    s_thresholds <- .data[item_index, "threshold"]
+    s_strengths <- .data[item_index, "strength"]
+    s[s_strengths <= s_thresholds] <- NA
+    
     # This picks out the points in time where a new item was recalled
-    RTs <- which(!duplicated(s))
+    RTs <- which(!duplicated(s, incomparables = NA) & !(is.na(s)))
     # This picks out the actual items output at those points in time, in the order they were output
     items <- s[RTs]
     # This stores the RTs for those items in this simulation
