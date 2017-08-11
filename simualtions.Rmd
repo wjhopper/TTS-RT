@@ -85,7 +85,7 @@ plot(seq_along(cum_proportion), cum_proportion,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )
-cum_exp <- function(x, y) y-exp(-x*coef(est))
+cum_exp <- function(x, y) y - y*exp(-x*coef(est))
 curve(cum_exp(x, y = mean_acc), add = TRUE)
 
 par(mfrow=c(1,1))
