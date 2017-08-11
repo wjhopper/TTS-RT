@@ -37,6 +37,7 @@ external.packages:
     plyr
     reshape2
     scales
+    bbmle
 local.repos: 
 load.external.packages.on.startup: FALSE
 ignored.packages: 

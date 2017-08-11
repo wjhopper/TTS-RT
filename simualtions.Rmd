@@ -12,6 +12,7 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pander)
+library(bbmle)
 source("TTS.R")
 ```
 
@@ -65,16 +66,27 @@ for (t in 1:params$duration) {
 proportion <- outputs_per_time_point/prod(dim(sim_RT))
 cum_proportion <- cumsum(proportion)
 
+## Fit exponential distribution to the simulated results
+est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
+          data=data.frame(y = sim_RT[!is.na(sim_RT)])
+          )
+
 par(mfrow=c(1,2))
 
 plot(seq_along(proportion), proportion,
      xlab = "Recall period (s)", ylab = "Relative Frequency",
      main = "Recall Latencies")
+curve(dexp(x, rate = coef(est)), add = TRUE)
+text(x = params$duration/2, y = max(proportion)*.8,
+     labels = substitute(lambda == y, list(y=round(coef(est), 3)))
+     )
 
 plot(seq_along(cum_proportion), cum_proportion,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )
+cum_exp <- function(x, y) y-exp(-x*coef(est))
+curve(cum_exp(x, y = mean_acc), add = TRUE)
 
 par(mfrow=c(1,1))
 ```
@@ -125,16 +137,26 @@ for (t in 1:params$duration) {
 proportion <- outputs_per_time_point/prod(dim(sim_RT))
 cum_proportion <- cumsum(proportion)
 
+## Fit exponential distribution to the simulated results
+est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
+            data = data.frame(y = sim_RT[!is.na(sim_RT)])
+            )
+
 par(mfrow=c(1,2))
 
 plot(seq_along(proportion), proportion,
      xlab = "Recall period (s)", ylab = "Relative Frequency",
      main = "Recall Latencies")
+curve(dexp(x, rate = coef(est)), add = TRUE)
+text(x = params$duration/2, y = max(proportion)*.8,
+     labels = substitute(lambda == y, list(y=round(coef(est), 3)))
+     )
 
 plot(seq_along(cum_proportion), cum_proportion,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )
+curve(cum_exp(x, y = mean_acc), add = TRUE)
 
 par(mfrow=c(1,1))
 ```
