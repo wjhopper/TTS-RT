@@ -19,34 +19,43 @@ source("TTS.R")
 set.seed(101)
 ```
 
-```{r data, cache=TRUE}
-mem_strengths <- data.frame(item = c(1:6, 1:9),
-                            strength = c(0.4, 0.6, 0.6, 1.2, 1.2, 2.0,
-                                         0.4, 0.5, 0.7,0.9,0.9, 1.0, 1.0,1.8, 1.8),
-                            threshold = c(rep(0, 6), rep(.8, 9)),
-                            set = c(rep(1, 6), rep(2, 9))
-                            )
+## No-threshold Simulations
+```{r no_thresh_data, cache=TRUE}
+no_thresh_mem_strengths <- as.matrix(
+                              data.frame(item = 1:6,
+                                         strength = c(0.4, 0.6, 0.6, 1.2, 1.2, 2.0),
+                                         threshold = rep(0, 6)
+                                         )
+                              )
 ```
 
-```{r no_threshold_simulations}
-no_thresh_mem_strengths <- as.matrix(mem_strengths[mem_strengths[,"threshold"] == 0,])
-pander(no_thresh_mem_strengths[, -4],
+```{r, echo=FALSE}
+pander(no_thresh_mem_strengths,
        caption = "Hypothetical Items in Memory")
-sim_RT <- TTS(no_thresh_mem_strengths,
-              duration = params$duration
-              )
 ```
 
-```{r analysis, fig.align="center", echo=FALSE}
-meanRT_by_item <- colMeans(sim_RT, na.rm = TRUE)
-plot(no_thresh_mem_strengths[,"strength"], meanRT_by_item,
-     xlab = "Strength", ylab = "RT")
+```{r no_thresh_simulations}
+sim_RT <- TTS(no_thresh_mem_strengths, duration = params$duration)
+```
 
+```{r no_thresh_analysis, fig.align="center", echo=FALSE}
+mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
 mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
-avg_acc <- mean(mean_acc_by_item)
-acc <- data.frame(t(mean_acc_by_item), avg_acc)
-names(acc) <- c(paste("Item", as.character(1:length(mean_acc_by_item))), "Avg.")
-pander(acc)
+
+mean_RT <- mean(sim_RT, na.rm = TRUE)
+mean_acc <- mean(mean_acc_by_item)
+
+results_table <- rbind(c(mean_acc_by_item, mean_acc),
+                       c(mean_RT_by_item, mean_RT)
+                       )
+
+colnames(results_table) <- c(paste("Item", as.character(1:(ncol(results_table)-1))), "Avg.")
+rownames(results_table) <- c("Acc.", "R.T.")
+pander(results_table, caption = "Average Performance")
+
+plot(no_thresh_mem_strengths[,"strength"], mean_RT_by_item,
+     xlab = "Strength", ylab = "RT",
+     main = "Reaction Time vs. Memory Strength")
 
 outputs_per_time_point <- numeric(params$duration)
 for (t in 1:params$duration) {
@@ -59,12 +68,72 @@ cum_proportion <- cumsum(proportion)
 par(mfrow=c(1,2))
 
 plot(seq_along(proportion), proportion,
-     xlab = "Recall period (s)", ylab = "Relative Frequency"
-     )
+     xlab = "Recall period (s)", ylab = "Relative Frequency",
+     main = "Recall Latencies")
 
 plot(seq_along(cum_proportion), cum_proportion,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
-     ylim = c(0, 1)
+     ylim = c(0, 1), main = "Cummulative Latency"
+     )
+
+par(mfrow=c(1,1))
+```
+
+## Fixed-threshold Simulations
+```{r fix_thresh_data, cache=TRUE}
+fixed_thresh_mem_strengths <- as.matrix(
+                                data.frame(item = 1:9,
+                                           strength = c(0.4, 0.5, 0.7, 0.9, 0.9, 1.0, 1.0, 1.8, 1.8),
+                                           threshold = rep(.8, 9)
+                                           )
+                                        )
+```
+
+```{r, echo=FALSE}
+pander(fixed_thresh_mem_strengths,
+       caption = "Hypothetical Items in Memory")
+```
+
+```{r fix_thresh_simulations}
+sim_RT <- TTS(fixed_thresh_mem_strengths, duration = params$duration)
+```
+
+```{r fix_thresh_analysis, fig.align="center", echo=FALSE}
+mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
+mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
+
+mean_RT <- mean(sim_RT, na.rm = TRUE)
+mean_acc <- mean(mean_acc_by_item)
+
+results_table <- rbind(c(mean_acc_by_item, mean_acc),
+                       c(mean_RT_by_item, mean_RT)
+                       )
+
+colnames(results_table) <- c(paste("Item", as.character(1:(ncol(results_table)-1))), "Avg.")
+rownames(results_table) <- c("Acc.", "R.T.")
+pander(results_table, split.tables = Inf)
+
+plot(fixed_thresh_mem_strengths[,"strength"], mean_RT_by_item,
+     xlab = "Strength", ylab = "RT",
+     main = "Reaction Time vs. Memory Strength")
+
+outputs_per_time_point <- numeric(params$duration)
+for (t in 1:params$duration) {
+  outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
+}
+
+proportion <- outputs_per_time_point/prod(dim(sim_RT))
+cum_proportion <- cumsum(proportion)
+
+par(mfrow=c(1,2))
+
+plot(seq_along(proportion), proportion,
+     xlab = "Recall period (s)", ylab = "Relative Frequency",
+     main = "Recall Latencies")
+
+plot(seq_along(cum_proportion), cum_proportion,
+     xlab = "Recall period (s)", ylab = "Proportion Recalled",
+     ylim = c(0, 1), main = "Cummulative Latency"
      )
 
 par(mfrow=c(1,1))
