@@ -58,34 +58,33 @@ plot(no_thresh_mem_strengths[,"strength"], mean_RT_by_item,
      xlab = "Strength", ylab = "RT",
      main = "Reaction Time vs. Memory Strength")
 
-outputs_per_time_point <- numeric(params$duration)
-for (t in 1:params$duration) {
-  outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
-}
 
-proportion <- outputs_per_time_point/(prod(dim(sim_RT))*mean_acc)
-cum_proportion <- cumsum(proportion)
+outputs_hist <- hist(sim_RT, breaks = seq(0, params$duration), plot = FALSE)
+proportion_per_timepoint <- outputs_hist$density
+cum_proportion_per_timepoint <- cumsum(proportion_per_timepoint)
 
 ## Fit exponential distribution to the simulated results
 est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
-          data=data.frame(y = sim_RT[!is.na(sim_RT)])
-          )
+            data=data.frame(y = sim_RT[!is.na(sim_RT)])
+            )
 
 par(mfrow=c(1,2))
 
-plot(seq_along(proportion), proportion,
+plot(seq_along(proportion_per_timepoint), proportion_per_timepoint,
      xlab = "Recall period (s)", ylab = "Relative Frequency",
      main = "Recall Latencies")
-curve(dexp(x, rate = coef(est)), add = TRUE)
-text(x = params$duration/2, y = max(proportion)*.8,
+lines(c(0:length(proportion_per_timepoint)), dexp(0:length(proportion_per_timepoint),
+                                                  rate = coef(est))
+      )
+text(x = params$duration/2, y = max(proportion_per_timepoint)*.8,
      labels = substitute(lambda == y, list(y=round(coef(est), 3)))
      )
 
-plot(seq_along(cum_proportion), cum_proportion,
+plot(seq_along(cum_proportion_per_timepoint), cum_proportion_per_timepoint,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )
-cum_exp <- function(x, y) y - y*exp(-x*coef(est))
+cum_exp <- function(x, y) y * (1 - exp(-x*coef(est)))
 curve(cum_exp(x, y = mean_acc), add = TRUE)
 
 par(mfrow=c(1,1))
@@ -129,13 +128,9 @@ plot(fixed_thresh_mem_strengths[,"strength"], mean_RT_by_item,
      xlab = "Strength", ylab = "RT",
      main = "Reaction Time vs. Memory Strength")
 
-outputs_per_time_point <- numeric(params$duration)
-for (t in 1:params$duration) {
-  outputs_per_time_point[t] <- sum(sim_RT == t, na.rm = TRUE)
-}
-
-proportion <- outputs_per_time_point/(prod(dim(sim_RT))*mean_acc)
-cum_proportion <- cumsum(proportion)
+outputs_hist <- hist(sim_RT, breaks = seq(0, params$duration), plot = FALSE)
+proportion_per_timepoint <- outputs_hist$density
+cum_proportion_per_timepoint <- cumsum(proportion_per_timepoint)
 
 ## Fit exponential distribution to the simulated results
 est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
@@ -144,15 +139,18 @@ est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
 
 par(mfrow=c(1,2))
 
-plot(seq_along(proportion), proportion,
+plot(seq_along(proportion_per_timepoint), proportion_per_timepoint,
      xlab = "Recall period (s)", ylab = "Relative Frequency",
      main = "Recall Latencies")
-curve(dexp(x, rate = coef(est)), add = TRUE)
-text(x = params$duration/2, y = max(proportion)*.8,
+lines(c(0:length(proportion_per_timepoint)), dexp(0:length(proportion_per_timepoint),
+                                                  rate = coef(est))
+      )
+
+text(x = params$duration/2, y = max(proportion_per_timepoint)*.8,
      labels = substitute(lambda == y, list(y=round(coef(est), 3)))
      )
 
-plot(seq_along(cum_proportion), cum_proportion*mean_acc,
+plot(seq_along(cum_proportion_per_timepoint), cum_proportion_per_timepoint*mean_acc,
      xlab = "Recall period (s)", ylab = "Proportion Recalled",
      ylim = c(0, 1), main = "Cummulative Latency"
      )

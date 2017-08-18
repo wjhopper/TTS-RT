@@ -6,7 +6,7 @@ TTS.numeric <- function(strength_dist_properties = c(.5, .15),
                         list_length = 10,
                         threshold = 0,
                         duration = 30,
-                        constant_rate = TRUE) {
+                        rate = 1) {
 
   if (length(strength_dist_properties) != 2) {
     stop("'strength_dist_properties' argument must be a numeric vector with 2 elements")
@@ -26,6 +26,14 @@ TTS.numeric <- function(strength_dist_properties = c(.5, .15),
   
   if (length(threshold) == 1) {
     threshold <- rep(threshold, list_length)
+  }
+  
+  if (length(rate) != 1 && length(rate) != list_length) {
+    stop("'rate' argument must be a scalar or same length as the value of 'list_length' argument")
+  }
+  
+  if (length(rate) == 1) {
+    threshold <- rep(rate, list_length)
   }
   
   beta_parameters <- whoppeR::betaParams(mean = strength_dist_properties[1],
@@ -57,7 +65,7 @@ TTS.data.frame <- function(.data, ...) {
 
 TTS.matrix <- function(.data,
                        duration = 30,
-                       constant_rate = TRUE) {
+                       rate = 1) {
   
   if (!is.numeric(.data)) {
     stop("input matrix must be numeric")
@@ -78,8 +86,11 @@ TTS.matrix <- function(.data,
   for (sim in 1:nrow(sim_RT)) {
     
     # The s vector tells you which item was sampled at each point in time
+    # The rate argument scales the duration of the recall period
+    # e.g., rate of 2 samples per second with a 30 second duration is the
+    # same as a rate of 1 sample per second with a 60 second duration)
     s <- sample(x = .data[, "item"],
-                size = duration,
+                size = duration*rate,
                 replace = TRUE,
                 prob = probabilities)
     
@@ -97,5 +108,6 @@ TTS.matrix <- function(.data,
     
   }
   
+  sim_RT <- sim_RT/rate # Rescale RT's back into seconds instead of "sampling-speed" units.
   return(sim_RT)
 }
