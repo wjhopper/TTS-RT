@@ -109,5 +109,95 @@ TTS.matrix <- function(.data,
   }
   
   sim_RT <- sim_RT/rate # Rescale RT's back into seconds instead of "sampling-speed" units.
-  return(sim_RT)
+  
+  x <- structure(list(RT = sim_RT,
+                      memories = .data,
+                      duration = duration,
+                      rate = rate),
+                 class = "TTS")
+  return(x)
+}
+
+summary.TTS <- function(TTS_obj, fit = TRUE) {
+
+  mean_RT_by_item <- colMeans(TTS_obj$RT, na.rm = TRUE)
+  mean_acc_by_item <- apply(TTS_obj$RT, 2, function(x) mean(!is.na(x)))
+  
+  mean_RT <- mean(TTS_obj$RT, na.rm = TRUE)
+  mean_acc <- mean(mean_acc_by_item)
+  
+  results_table <- rbind(c(mean_acc_by_item, mean_acc),
+                         c(mean_RT_by_item, mean_RT)
+                         )
+  colnames(results_table) <- c(paste("Item", as.character(1:(ncol(results_table)-1))), "Avg.")
+  rownames(results_table) <- c("Acc.", "R.T.")
+  
+  outputs_hist <- hist(TTS_obj$RT, breaks = seq(0,TTS_obj$duration), plot = FALSE)
+  proportion_per_timepoint <- outputs_hist$density
+  cum_proportion_per_timepoint <- cumsum(proportion_per_timepoint)*mean_acc
+
+  x <- structure(list(means = results_table,
+                      proportion_per_timepoint = proportion_per_timepoint,
+                      cum_proportion_per_timepoint = cum_proportion_per_timepoint),
+                 class = "TTS_summary"
+  )
+
+  # Fitting exponential distribution rate parameter to simulated data
+  if (fit) {
+
+    x$fitted_rate <- mle2(y ~ dexp(rate = lambda),
+                          start = list(lambda = 1 / ncol(TTS_obj$RT)),
+                          data = data.frame(y = TTS_obj$RT[!is.na(TTS_obj$RT)])
+                          )
+  }
+
+  return(x)
+}
+
+cum_exp <- function(x, rate, asymptote) {
+  asymptote * (1 - exp(-x*rate))
+}
+
+plot.TTS_summary <- function(TTS_obj){
+
+  par(mfrow=c(1,2))
+  
+  # Latency Distibution, with best fitting exponential if
+  plot(x = seq_along(TTS_obj$proportion_per_timepoint),
+       y = TTS_obj$proportion_per_timepoint,
+       xlab = "Recall period (s)", ylab = "Relative Frequency",
+       main = "Recall Latencies")
+  
+  if ("fitted_rate" %in% names(TTS_obj)) {
+
+    lines(x = c(0:length(TTS_obj$proportion_per_timepoint)),
+          y = dexp(0:length(TTS_obj$proportion_per_timepoint),
+                   rate = coef(TTS_obj$fitted_rate))
+          )
+    text(x = params$duration/2, y = max(TTS_obj$proportion_per_timepoint)*.8,
+         labels = substitute(lambda == y, list(y=round(coef(TTS_obj$fitted_rate), 3)))
+         )
+  }
+  
+  # Cummulative Latency Distribution
+  plot(x = seq_along(TTS_obj$cum_proportion_per_timepoint),
+       y = TTS_obj$cum_proportion_per_timepoint,
+       xlab = "Recall period (s)", ylab = "Proportion Recalled",
+       ylim = c(0, 1), main = "Cummulative Latency"
+       )
+  curve(cum_exp(x,
+                rate = coef(TTS_obj$fitted_rate),
+                asymptote = TTS_obj$means[1, ncol(TTS_obj$means)]
+                ),
+        add = TRUE)
+  
+  par(mfrow=c(1,1))
+}
+
+coef.TTS_summary <- function(TTS_obj, ...) {
+  return(coef(TTS_obj$fitted_rate, ...))
+}
+
+pander.TTS_summary <- function(TTS_obj, ...) {
+  pander(TTS_obj$means, caption = "Average Performance", ...)
 }

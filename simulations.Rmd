@@ -16,145 +16,64 @@ library(bbmle)
 source("TTS.R")
 ```
 
-```{r seed}
+```{r seed, echo=1, results='asis'}
 set.seed(101)
+cat("<h3>Simulation Parameters:</h3>")
+pander(unlist(params))
 ```
 
 ## No-threshold Simulations
-```{r no_thresh_data, cache=TRUE}
+```{r no_thresh_data, cache=TRUE, echo = FALSE}
 no_thresh_mem_strengths <- as.matrix(
                               data.frame(item = 1:6,
                                          strength = c(0.4, 0.6, 0.6, 1.2, 1.2, 2.0),
                                          threshold = rep(0, 6)
                                          )
                               )
-```
-
-```{r, echo=FALSE}
 pander(no_thresh_mem_strengths,
        caption = "Hypothetical Items in Memory")
 ```
 
-```{r no_thresh_simulations}
+```{r no_thresh_simulations, warning=FALSE}
 sim_RT <- TTS(no_thresh_mem_strengths, duration = params$duration)
+sim_RT_summary <- summary(sim_RT)
 ```
 
-```{r no_thresh_analysis, fig.align="center", echo=FALSE, warning=FALSE}
-mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
-mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
+```{r no_thresh_analysis, fig.align="center", echo=FALSE}
+pander(sim_RT_summary)
 
-mean_RT <- mean(sim_RT, na.rm = TRUE)
-mean_acc <- mean(mean_acc_by_item)
-
-results_table <- rbind(c(mean_acc_by_item, mean_acc),
-                       c(mean_RT_by_item, mean_RT)
-                       )
-
-colnames(results_table) <- c(paste("Item", as.character(1:(ncol(results_table)-1))), "Avg.")
-rownames(results_table) <- c("Acc.", "R.T.")
-pander(results_table, caption = "Average Performance")
-
-plot(no_thresh_mem_strengths[,"strength"], mean_RT_by_item,
+plot(sim_RT$memories[,"strength"],
+     sim_RT_summary$means['R.T.', -ncol(sim_RT_summary$means)],
      xlab = "Strength", ylab = "RT",
      main = "Reaction Time vs. Memory Strength")
 
-
-outputs_hist <- hist(sim_RT, breaks = seq(0, params$duration), plot = FALSE)
-proportion_per_timepoint <- outputs_hist$density
-cum_proportion_per_timepoint <- cumsum(proportion_per_timepoint)
-
-## Fit exponential distribution to the simulated results
-est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
-            data=data.frame(y = sim_RT[!is.na(sim_RT)])
-            )
-
-par(mfrow=c(1,2))
-
-plot(seq_along(proportion_per_timepoint), proportion_per_timepoint,
-     xlab = "Recall period (s)", ylab = "Relative Frequency",
-     main = "Recall Latencies")
-lines(c(0:length(proportion_per_timepoint)), dexp(0:length(proportion_per_timepoint),
-                                                  rate = coef(est))
-      )
-text(x = params$duration/2, y = max(proportion_per_timepoint)*.8,
-     labels = substitute(lambda == y, list(y=round(coef(est), 3)))
-     )
-
-plot(seq_along(cum_proportion_per_timepoint), cum_proportion_per_timepoint,
-     xlab = "Recall period (s)", ylab = "Proportion Recalled",
-     ylim = c(0, 1), main = "Cummulative Latency"
-     )
-cum_exp <- function(x, y) y * (1 - exp(-x*coef(est)))
-curve(cum_exp(x, y = mean_acc), add = TRUE)
-
-par(mfrow=c(1,1))
+plot(sim_RT_summary)
 ```
 
 ## Fixed-threshold Simulations
-```{r fix_thresh_data, cache=TRUE}
+```{r fix_thresh_data, cache=TRUE, echo=FALSE}
 fixed_thresh_mem_strengths <- as.matrix(
                                 data.frame(item = 1:9,
                                            strength = c(0.4, 0.5, 0.7, 0.9, 0.9, 1.0, 1.0, 1.8, 1.8),
                                            threshold = rep(.8, 9)
                                            )
                                         )
-```
-
-```{r, echo=FALSE}
 pander(fixed_thresh_mem_strengths,
        caption = "Hypothetical Items in Memory")
 ```
 
-```{r fix_thresh_simulations}
+```{r fix_thresh_simulations, warning=FALSE}
 sim_RT <- TTS(fixed_thresh_mem_strengths, duration = params$duration)
+sim_RT_summary <- summary(sim_RT)
 ```
 
 ```{r fix_thresh_analysis, fig.align="center", echo=FALSE, warning=FALSE}
-mean_RT_by_item <- colMeans(sim_RT, na.rm = TRUE)
-mean_acc_by_item <- apply(sim_RT, 2, function(x) mean(!is.na(x)))
+pander(sim_RT_summary, split.tables = Inf)
 
-mean_RT <- mean(sim_RT, na.rm = TRUE)
-mean_acc <- mean(mean_acc_by_item)
-
-results_table <- rbind(c(mean_acc_by_item, mean_acc),
-                       c(mean_RT_by_item, mean_RT)
-                       )
-
-colnames(results_table) <- c(paste("Item", as.character(1:(ncol(results_table)-1))), "Avg.")
-rownames(results_table) <- c("Acc.", "R.T.")
-pander(results_table, split.tables = Inf)
-
-plot(fixed_thresh_mem_strengths[,"strength"], mean_RT_by_item,
+plot(sim_RT$memories[,"strength"],
+     sim_RT_summary$means['R.T.', -ncol(sim_RT_summary$means)],
      xlab = "Strength", ylab = "RT",
      main = "Reaction Time vs. Memory Strength")
 
-outputs_hist <- hist(sim_RT, breaks = seq(0, params$duration), plot = FALSE)
-proportion_per_timepoint <- outputs_hist$density
-cum_proportion_per_timepoint <- cumsum(proportion_per_timepoint)
-
-## Fit exponential distribution to the simulated results
-est <- mle2(y ~ dexp(rate = lambda), start = list(lambda = 1/ncol(sim_RT)),
-            data = data.frame(y = sim_RT[!is.na(sim_RT)])
-            )
-
-par(mfrow=c(1,2))
-
-plot(seq_along(proportion_per_timepoint), proportion_per_timepoint,
-     xlab = "Recall period (s)", ylab = "Relative Frequency",
-     main = "Recall Latencies")
-lines(c(0:length(proportion_per_timepoint)), dexp(0:length(proportion_per_timepoint),
-                                                  rate = coef(est))
-      )
-
-text(x = params$duration/2, y = max(proportion_per_timepoint)*.8,
-     labels = substitute(lambda == y, list(y=round(coef(est), 3)))
-     )
-
-plot(seq_along(cum_proportion_per_timepoint), cum_proportion_per_timepoint*mean_acc,
-     xlab = "Recall period (s)", ylab = "Proportion Recalled",
-     ylim = c(0, 1), main = "Cummulative Latency"
-     )
-curve(cum_exp(x, y = mean_acc), add = TRUE)
-
-par(mfrow=c(1,1))
+plot(sim_RT_summary)
 ```
